@@ -1,0 +1,40 @@
+lappend auto_path "[pwd]/lib/"
+package require pdf4tcl
+
+cd {../input/}
+listbox .dirs -selectmode single -exportselection no -height 0
+foreach dir [set dirs [glob -nocomplain -- *]] {
+  .dirs insert end $dir
+}
+.dirs selection set 0
+listbox .fmt -selectmode single -exportselection no -height 0
+.fmt insert end jpeg
+.fmt insert end png
+.fmt selection set 0
+button .process -text process -command {
+  set dir [.dirs get [.dirs curselection]]
+  cd $dir
+  if {[.fmt get [.fmt curselection]] == {png}} {
+    set ext {{*.png}}
+    set type png
+  } {
+    set ext {*.{jpeg,jpg,JPG}}
+    set type jpeg
+  }
+  ::pdf4tcl::new document -file "../../output/${dir}.pdf" 
+  set width  [string range [lindex [::pdf4tcl::getPaperSize   a6] 0] 0 end-2]
+  set height [string range [lindex [::pdf4tcl::getPaperSize a6] 1] 0 end-2]
+
+  set files [lsort -dictionary -unique [glob -nocomplain -- $ext]]
+  set max [llength $files]
+  foreach filename $files {
+    document startPage -paper a6
+    document putImage [document addImage $filename -type $type] 0 0 -width $width -height $height
+  }
+  document finish
+  document destroy
+}
+grid .dirs
+grid .fmt
+grid .process
+tkwait window .                                                                                              
